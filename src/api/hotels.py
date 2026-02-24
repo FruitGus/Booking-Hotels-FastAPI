@@ -18,13 +18,23 @@ router = APIRouter(prefix="/hotels", tags=["Отели"])
 @router.get("", summary="Получение всех отелей")
 async def get_hotels(
         pagination: PaginationDep,
-        id: int | None = Query(None, description="Айдишник"),
+        location: str | None = Query(None, description="Местоположение"),
         title: str | None = Query(None, description="Название отеля"),
+
 ):
-    # if pagination.page and pagination.per_page:
-    #     return hotels_[pagination.per_page * (pagination.page - 1):][:pagination.per_page]
+
+    per_page = pagination.per_page or 5
     async with async_session_maker() as session:
         query = select(HotelsOrm)
+        if location:
+            query = query.where(HotelsOrm.location.ilike("%" + location + "%"))
+        if title:
+            query = query.where(HotelsOrm.title.ilike("%" + title + "%"))
+        query = (
+            query
+            .limit(per_page)
+            .offset(per_page * (pagination.page - 1))
+        )
         result = await session.execute(query)
         hotels = result.scalars().all()
         return hotels
@@ -34,11 +44,13 @@ async def get_hotels(
 
 @router.post("", summary="Создание отеля")
 async def create_hotel(hotel_data: Hotel = Body(openapi_examples={
-    "1": {"summary": "Пермь", "value": {
+    "1": {"summary": "Пермь",
+          "value": {
         "title": "Отель Урал",
         "location": "г.Пермь, ул.Ленина 48г",
     }},
-    "2": {"summary": "Екатеринбург", "value":{
+    "2": {"summary": "Екатеринбург",
+          "value":{
         "title": "Отель Hyatt",
         "location": "г.Екатеринубург, ул.Бориса Ельцина 6",
     }},
@@ -46,7 +58,7 @@ async def create_hotel(hotel_data: Hotel = Body(openapi_examples={
 ):
     async with async_session_maker() as session:
         add_hotel_stmt = insert(HotelsOrm).values(**hotel_data.model_dump())
-        print(add_hotel_stmt.compile(engine, comple_kwargs={"literal_binds": True}))
+        print(add_hotel_stmt.compile(engine, compile_kwargs={"literal_binds": True}))
         await session.execute(add_hotel_stmt)
         await session.commit()
 
