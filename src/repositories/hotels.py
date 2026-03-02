@@ -27,3 +27,5 @@ class HotelsRepository(BaseRepository):
 
         return result.scalars().all()
 
+
+

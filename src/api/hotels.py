@@ -1,5 +1,6 @@
+from email.policy import default
 
-from fastapi import Query, APIRouter, Body
+from fastapi import Query, APIRouter, Body, Path
 
 from sqlalchemy import insert, select
 
@@ -32,6 +33,11 @@ async def get_hotels(
             offset=per_page * (pagination.page - 1)
         )
 
+
+@router.get("/{hotel_id}", summary="Получение одного отеля по id")
+async def get_hotel(hotel_id: int = Path(description="Айдишник")):
+    async with async_session_maker() as session:
+        return await HotelsRepository(session).get_one_or_none(id=hotel_id)
 
 
 
